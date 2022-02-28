@@ -1,149 +1,114 @@
-#include <asio/io_service.hpp>
-#include <asio/write.hpp>
-#include <asio/buffer.hpp>
-#include <asio/ip/tcp.hpp>
-#include <array>
-#include <string>
 #include <iostream>
-#include <functional>
+#include <boost/array.hpp>
+#include <boost/asio.hpp>
 
-using namespace asio;
-using namespace asio::ip;
-
-io_service ioservice;
-tcp::resolver resolv{ ioservice };
-tcp::socket tcp_socket{ ioservice };
-std::array<char, 4096> bytes;
+using boost::asio::ip::udp;
 
 class serviceBase
 {
 protected:
-    asio::io_service service;
+	boost::asio::io_service service;
 
 public:
-    virtual ~serviceBase() = default;
+	virtual ~serviceBase() = default;
 };
 
-class TCPRequest : private serviceBase
+class speaker : private serviceBase
 {
-    std::vector<std::byte> response;
-    tcp::resolver resolver;
-    tcp::socket socket;
-
-    static constexpr std::size_t bufferSize = 1024;
+	udp::resolver resolver;
 
 public:
 
-    TCPRequest(const std::string& destination, const std::string& port) : resolver(service), socket(service)
-    {
-        resolver.async_resolve(tcp::resolver::query(destination, port),
-            std::bind(&TCPRequest::resolve, this,
-                std::placeholders::_1, std::placeholders::_2));
-    }
+	speaker() : resolver(service)
+	{
+	}
 
-    const std::vector<std::byte>& get() const
-    {
-        return response;
-    }
 
-    void read(const asio::error_code& ec, std::size_t bytes)
-    {
-        if (!ec)
-        {
-            const std::size_t start = response.size();
-            response.resize(response.size() + bytes);
-            socket.async_read_some(buffer(response.data() + start, bytes),
-                std::bind(&TCPRequest::read, this,
-                    std::placeholders::_1, std::placeholders::_2));
-            service.stop();
-        }
-    }
+	std::string request(const std::string& target, const std::string& message, const std::string& port)
+	{
+		std::string data;
+		data.resize(1024);
+		udp::resolver::query query(udp::v4(), target, port);
+		auto endpoint = *resolver.resolve(query);
 
-    void connect(const asio::error_code& ec)
-    {
-        if (!ec)
-        {
-            const std::size_t start = response.size();
-            response.resize(response.size() + bufferSize);
+		udp::socket socket(service);
+		socket.open(udp::v4());
 
-            std::string r =
-                "GET / HTTP/1.1\r\nHost: theboostcpplibraries.com\r\n\r\n";
-            write(socket, buffer(r));
-            socket.async_read_some(buffer(response.data() + start, bufferSize), 
-                std::bind(&TCPRequest::read, this,
-                    std::placeholders::_1, std::placeholders::_2));
-        }
-    }
+		socket.send_to(boost::asio::buffer(message), endpoint);
 
-    void resolve(const asio::error_code& ec, tcp::resolver::iterator it)
-    {
-        if (!ec)
-            socket.async_connect(*it, 
-                std::bind(&TCPRequest::connect, this,
-                    std::placeholders::_1));
-    }
+		udp::endpoint response;
+		std::size_t length = socket.receive_from(
+			boost::asio::buffer(data.data(), data.size()), response);
 
-    void execute()
-    {
-        service.run();
-    }
+		data.resize(length);
+		return data;
+	}
 };
 
-class TCPConnection
+class listener : private serviceBase
 {
-    tcp::socket socket;
-    std::string message;
-
-    void handle_write(asio::error_code&, size_t) {}
+	udp::socket socket;
 
 public:
-    TCPConnection(asio::io_service& service) : socket(service) {}
 
-    void send(const std::string& msg)
-    {
-        asio::write(socket, buffer(msg),
-            std::bind(&TCPConnection::handle_write, this,
-                std::placeholders::_1, std::placeholders::_2));
-    }
+	listener(uint32_t port) : socket(service, udp::endpoint(udp::v4(), port))
+	{
 
-    tcp::socket& getSocket()
-    {
-        return socket;
-    }
+	}
+
+	void listen()
+	{
+		std::string recieved;
+		recieved.resize(10);
+
+		udp::endpoint remote;
+
+		boost::system::error_code ec;
+		std::size_t contentSize = socket.receive_from(
+		boost::asio::buffer(recieved.data(), recieved.size()),
+			remote, 0, ec);
+
+
+		if (ec)
+		{
+			std::cout << "Invalid request.\n";
+			return;
+		}
+
+		recieved.resize(contentSize);
+
+		std::cout << "Recieved: " << recieved << ".\n";
+
+		std::string response = "1514131211109876543210";
+
+		boost::system::error_code ignore;
+		socket.send_to(boost::asio::buffer(response.data(), response.size()),
+			remote, 0, ignore);
+	}
 };
 
-class TCPListener : private serviceBase
+void autoSpeak()
 {
-    tcp::acceptor acceptor;
+	speaker speak;
+	std::cout << "Sending request:\nRecieved: ";
+	std::cout << speak.request("localhost", "0123456789101112131415", "40404");
+	std::cin.ignore();
+}
 
-    void start_accept()
-    {
-        TCPConnection con(service);
-        std::cout << "Waiting.";
-        acceptor.async_accept(con.getSocket(),
-            std::bind(&TCPListener::handle_accept, this, con,
-                std::placeholders::_1));
-    }
-
-    void handle_accept(TCPConnection& con, const asio::error_code& ec)
-    {
-        if (!ec)
-        {
-            con.send("Hello.");
-        }
-        start_accept();
-    }
-
-public:
-    TCPListener() : acceptor(service) {}
-
-};
+void autoListen()
+{
+	listener listen(40404);
+	std::cout << "Listening on 40404\n";
+	listen.listen();
+	std::cin.ignore();
+}
 
 int main()
 {
-    TCPRequest request("theboostcpplibraries.com", "80");
-    request.execute();
-    for (const auto i : request.get())
-        std::cout << static_cast<char>(i);
-    std::cin.ignore();
+#ifdef _DEBUG
+	autoSpeak();
+#else
+	autoListen();
+#endif // DEBUG
+
 }
