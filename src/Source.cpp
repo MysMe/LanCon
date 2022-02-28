@@ -15,13 +15,16 @@ tcp::resolver resolv{ ioservice };
 tcp::socket tcp_socket{ ioservice };
 std::array<char, 4096> bytes;
 
-class TCPServiceBase
+class serviceBase
 {
 protected:
     asio::io_service service;
+
+public:
+    virtual ~serviceBase() = default;
 };
 
-class TCPRequest : private TCPServiceBase
+class TCPRequest : private serviceBase
 {
     std::vector<std::byte> response;
     tcp::resolver resolver;
@@ -86,9 +89,59 @@ public:
     }
 };
 
+class TCPConnection
+{
+    tcp::socket socket;
+    std::string message;
+
+    void handle_write(asio::error_code&, size_t) {}
+
+public:
+    TCPConnection(asio::io_service& service) : socket(service) {}
+
+    void send(const std::string& msg)
+    {
+        asio::write(socket, buffer(msg),
+            std::bind(&TCPConnection::handle_write, this,
+                std::placeholders::_1, std::placeholders::_2));
+    }
+
+    tcp::socket& getSocket()
+    {
+        return socket;
+    }
+};
+
+class TCPListener : private serviceBase
+{
+    tcp::acceptor acceptor;
+
+    void start_accept()
+    {
+        TCPConnection con(service);
+        std::cout << "Waiting.";
+        acceptor.async_accept(con.getSocket(),
+            std::bind(&TCPListener::handle_accept, this, con,
+                std::placeholders::_1));
+    }
+
+    void handle_accept(TCPConnection& con, const asio::error_code& ec)
+    {
+        if (!ec)
+        {
+            con.send("Hello.");
+        }
+        start_accept();
+    }
+
+public:
+    TCPListener() : acceptor(service) {}
+
+};
+
 int main()
 {
-    TCPRequest request("www.google.com", "80");
+    TCPRequest request("theboostcpplibraries.com", "80");
     request.execute();
     for (const auto i : request.get())
         std::cout << static_cast<char>(i);
