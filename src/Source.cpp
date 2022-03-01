@@ -1,99 +1,165 @@
 #include <iostream>
 #include <asio.hpp>
-#include <optional>
+#include <set>
 
-
-class UDPScanner
+class TCPSenderService
 {
-	//No data is ever sent, so a "null" buffer is used in most cases
-	static auto nullBuffer()
+protected:
+	asio::io_service service;
+
+public:
+	virtual ~TCPSenderService() = default;
+};
+
+class TCPSender : private TCPSenderService
+{
+	asio::ip::tcp::resolver resolver;
+	asio::ip::tcp::socket socket;
+	bool isConnected = false;
+
+	void handle_connect(const asio::error_code& ec)
 	{
-		return asio::buffer((char*)nullptr, 0);
+		if (!ec)
+			isConnected = true;
 	}
 
 public:
 
-	//Sends a broadcast and returns the address of the first responder
-	std::optional<asio::ip::address> ping(unsigned short port)
+	TCPSender()
+		: socket(service), resolver(service)
+	{}
+
+	TCPSender(const std::string& IP, const std::string& port, std::size_t timeoutMS)
+		: socket(service), resolver(service)
 	{
-		using asio::ip::udp;
-
-		//Initialise socket
-		asio::io_service service;
-		udp::socket socket(service);
-
-		//Open socket on port as UDP
-		asio::error_code ec;
-		socket.open(udp::v4(), ec);
-		if (ec)
-			return {};
-
-		//Set socket for broadcast
-		socket.set_option(asio::ip::udp::socket::reuse_address(true));
-		socket.set_option(asio::socket_base::broadcast(true));
-		auto endpoint = udp::endpoint(asio::ip::address_v4::broadcast(), port);
-
-		//Send broadcast
-		socket.send_to(nullBuffer(), endpoint);
-
-		udp::endpoint response;
-		std::size_t length = socket.receive_from(
-			nullBuffer(), response);
-
-		if (length != 0)
-			return {};
-
-		socket.close();
-		return response.address();
+		connect(IP, port, timeoutMS);
 	}
 
-	std::optional<asio::ip::address> listen(unsigned short port)
+	~TCPSender()
 	{
-		using asio::ip::udp;
-		asio::io_service service;
-		udp::socket socket(service, udp::endpoint(udp::v4(), port));
+		disconnect();
+	}
 
-
-		udp::endpoint remote;
-		asio::error_code ec;
-
-		std::size_t contentSize = socket.receive_from(
-			nullBuffer(), remote, 0, ec);
-
-		if (ec)
+	void disconnect()
+	{
+		if (connected())
 		{
-			return {};
+			socket.shutdown(socket.shutdown_both);
+			isConnected = false;
 		}
+	}
 
-		asio::error_code ignore;
-		socket.send_to(nullBuffer(), remote, 0, ignore);
-		socket.close();
-		return remote.address();
+	bool connect(const std::string& IP, const std::string& port, std::size_t timeoutMS)
+	{
+		disconnect();
+
+		auto endpoint = *resolver.resolve(
+			asio::ip::tcp::resolver::query(asio::ip::tcp::v4(), IP, port));
+		
+		socket.async_connect(endpoint, 
+			std::bind(&TCPSender::handle_connect, this, std::placeholders::_1));
+
+		service.run_one_for(std::chrono::milliseconds(timeoutMS));
+		service.stop();
+		service.reset();
+
+		return connected();
+	}
+
+	bool connected() const
+	{
+		return isConnected;
+	}
+
+	void send(const std::string& message)
+	{
+		socket.send(asio::buffer(message));
 	}
 };
 
-void autoSpeak()
+//Asynchronous
+class TCPListener
 {
-	UDPScanner host;
-	std::cout << "Scanning...\n";
-	std::cout << host.ping(40404).value();
-	std::cin.ignore();
+	asio::ip::tcp::acceptor acceptor;
+	asio::ip::tcp::socket socket;
+	std::string contents;
+	std::string buffer;
+
+	void handle_read(const asio::error_code& ec, size_t bytes)
+	{
+		if (!ec)
+		{
+			buffer.resize(bytes);
+			std::cout << buffer << '\n';
+			buffer.clear();
+		}
+		start_read();
+	}
+
+	void start_read()
+	{
+		buffer.resize(100, '\0');
+		socket.async_receive(asio::buffer(buffer),
+			std::bind(&TCPListener::handle_read, this,
+				std::placeholders::_1, std::placeholders::_2));
+	}
+
+	void handle_accept(const asio::error_code& ec)
+	{
+		if (!ec)
+		{
+			std::cout << "Someone connected.\n";
+			start_read();
+		}
+	}
+
+	void start_accept()
+	{
+		acceptor.async_accept(socket,
+			std::bind(&TCPListener::handle_accept, this,
+				std::placeholders::_1));
+	}
+
+public:
+	TCPListener(asio::io_service& service, unsigned short port)
+		: acceptor(service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)),
+		socket(service)
+	{
+		start_accept();
+	}
+};
+
+
+void autoSend()
+{
+	TCPSender send("localhost", "40404", 1000);
+	while (!send.connected())
+	{
+		std::cout << "Failed to connect, retrying...\n";
+		send.connect("localhost", "40404", 1000);
+	}
+	std::cout << "Connected.\n";
+	while (true)
+	{
+		std::string line;
+		std::getline(std::cin, line);
+		send.send(line);
+	}
 }
 
-void autoListen()
+void autoRecieve()
 {
-	UDPScanner client;
-	std::cout << "Waiting...\n";
-	std::cout << client.listen(40404).value();
-	std::cin.ignore();
+	asio::io_service service;
+	TCPListener listen(service, 40404);
+	service.run();
 }
 
 int main()
 {
-#ifndef _DEBUG
-	autoSpeak();
+#ifdef _DEBUG
+	autoSend();
 #else
-	autoListen();
-#endif // DEBUG
+	autoRecieve();
+#endif // _DEBUG
 
 }
