@@ -1,111 +1,96 @@
 #include <iostream>
-#include <boost/array.hpp>
-#include <boost/asio.hpp>
+#include <asio.hpp>
+#include <optional>
 
-using boost::asio::ip::udp;
 
-class serviceBase
+class UDPScanner
 {
-protected:
-	boost::asio::io_service service;
-
-public:
-	virtual ~serviceBase() = default;
-};
-
-class speaker : private serviceBase
-{
-	udp::resolver resolver;
-
-public:
-
-	speaker() : resolver(service)
+	//No data is ever sent, so a "null" buffer is used in most cases
+	static auto nullBuffer()
 	{
+		return asio::buffer((char*)nullptr, 0);
 	}
 
+public:
 
-	std::string request(const std::string& target, const std::string& message, const std::string& port)
+	//Sends a broadcast and returns the address of the first responder
+	std::optional<asio::ip::address> ping(unsigned short port)
 	{
-		std::string data;
-		data.resize(1024);
-		udp::resolver::query query(udp::v4(), target, port);
-		auto endpoint = *resolver.resolve(query);
+		using asio::ip::udp;
 
+		//Initialise socket
+		asio::io_service service;
 		udp::socket socket(service);
-		socket.open(udp::v4());
 
-		socket.send_to(boost::asio::buffer(message), endpoint);
+		//Open socket on port as UDP
+		asio::error_code ec;
+		socket.open(udp::v4(), ec);
+		if (ec)
+			return {};
+
+		//Set socket for broadcast
+		socket.set_option(asio::ip::udp::socket::reuse_address(true));
+		socket.set_option(asio::socket_base::broadcast(true));
+		auto endpoint = udp::endpoint(asio::ip::address_v4::broadcast(), port);
+
+		//Send broadcast
+		socket.send_to(nullBuffer(), endpoint);
 
 		udp::endpoint response;
 		std::size_t length = socket.receive_from(
-			boost::asio::buffer(data.data(), data.size()), response);
+			nullBuffer(), response);
 
-		data.resize(length);
-		return data;
-	}
-};
+		if (length != 0)
+			return {};
 
-class listener : private serviceBase
-{
-	udp::socket socket;
-
-public:
-
-	listener(uint32_t port) : socket(service, udp::endpoint(udp::v4(), port))
-	{
-
+		socket.close();
+		return response.address();
 	}
 
-	void listen()
+	std::optional<asio::ip::address> listen(unsigned short port)
 	{
-		std::string recieved;
-		recieved.resize(10);
+		using asio::ip::udp;
+		asio::io_service service;
+		udp::socket socket(service, udp::endpoint(udp::v4(), port));
+
 
 		udp::endpoint remote;
+		asio::error_code ec;
 
-		boost::system::error_code ec;
 		std::size_t contentSize = socket.receive_from(
-		boost::asio::buffer(recieved.data(), recieved.size()),
-			remote, 0, ec);
-
+			nullBuffer(), remote, 0, ec);
 
 		if (ec)
 		{
-			std::cout << "Invalid request.\n";
-			return;
+			return {};
 		}
 
-		recieved.resize(contentSize);
-
-		std::cout << "Recieved: " << recieved << ".\n";
-
-		std::string response = "1514131211109876543210";
-
-		boost::system::error_code ignore;
-		socket.send_to(boost::asio::buffer(response.data(), response.size()),
-			remote, 0, ignore);
+		asio::error_code ignore;
+		socket.send_to(nullBuffer(), remote, 0, ignore);
+		socket.close();
+		return remote.address();
 	}
 };
 
 void autoSpeak()
 {
-	speaker speak;
-	std::cout << "Sending request:\nRecieved: ";
-	std::cout << speak.request("localhost", "0123456789101112131415", "40404");
+	UDPScanner host;
+	std::cout << "Scanning...\n";
+	std::cout << host.ping(40404).value();
 	std::cin.ignore();
 }
 
 void autoListen()
 {
-	listener listen(40404);
-	std::cout << "Listening on 40404\n";
-	listen.listen();
+	UDPScanner client;
+	std::cout << "Waiting...\n";
+	std::cout << client.listen(40404).value();
 	std::cin.ignore();
 }
 
 int main()
 {
-#ifdef _DEBUG
+#ifndef _DEBUG
 	autoSpeak();
 #else
 	autoListen();
