@@ -1,6 +1,8 @@
 #include <iostream>
 #include <asio.hpp>
 #include <set>
+#include "UDPBroadcaster.h"
+#include "UDPListener.h"
 
 class TCPSenderService
 {
@@ -154,12 +156,45 @@ void autoRecieve()
 	service.run();
 }
 
+void autoListen()
+{
+	asio::io_service service;
+	UDPResponder responder(service, 40404);
+
+	std::cout << "Listening.\n";
+	size_t addC = 0;
+	while (true)
+	{
+		service.run_one_for(std::chrono::seconds(2));
+		if (responder.getAddresses().size() != addC)
+		{
+			std::cout << "New address(es) found:\n";
+			for (const auto& i : responder.getAddresses())
+				std::cout << "\t" << i.to_string() << "\n";
+			addC = responder.getAddresses().size();
+		}
+	}
+}
+
+void autoBroadcast()
+{
+	asio::io_service service;
+	UDPBroadcaster broadcast(service, 40404);
+	size_t addC = 0;
+	while (true)
+	{
+		service.run_one_for(std::chrono::seconds(2));
+		if (broadcast.getAddresses().size() != addC)
+		{
+			std::cout << "New address(es) found:\n";
+			for (const auto& i : broadcast.getAddresses())
+				std::cout << "\t" << i.to_string() << "\n";
+			addC = broadcast.getAddresses().size();
+		}
+	}
+}
+
 int main()
 {
-#ifdef _DEBUG
-	autoSend();
-#else
-	autoRecieve();
-#endif // _DEBUG
-
+	autoListen();
 }
