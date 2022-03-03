@@ -131,14 +131,13 @@ public:
 	}
 };
 
-
 void autoSend()
 {
-	TCPSender send("localhost", "40404", 1000);
+	TCPSender send("192.168.1.145", "40404", 1000);
 	while (!send.connected())
 	{
 		std::cout << "Failed to connect, retrying...\n";
-		send.connect("localhost", "40404", 1000);
+		send.connect("192.168.1.145", "40404", 1000);
 	}
 	std::cout << "Connected.\n";
 	while (true)
@@ -196,5 +195,5 @@ void autoBroadcast()
 
 int main()
 {
-	autoListen();
+	autoSend();
 }

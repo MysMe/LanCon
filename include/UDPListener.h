@@ -12,7 +12,7 @@ class UDPResponder
 	std::set<asio::ip::address> foundAddresses;
 
 	//Called once the system has finished sending some data
-	void handle_send(const asio::error_code&, size_t)
+	void handle_message(const asio::error_code&, size_t)
 	{
 		foundAddresses.insert(remote.address());
 	}
@@ -25,7 +25,7 @@ class UDPResponder
 			//Respond with a single byte
 			socket.async_send_to(
 				asio::buffer("\0", 1), remote,
-				std::bind(&UDPResponder::handle_send, this,
+				std::bind(&UDPResponder::handle_message, this,
 					std::placeholders::_1, std::placeholders::_2));
 			//Enque another wait to recieve
 			start_recieve();
@@ -47,8 +47,11 @@ public:
 	//Constructs a new responder bound to a given service, does not start listening immediately
 	//Binds the responder to the given port
 	UDPResponder(asio::io_service& service, unsigned short port) :
-		socket(service, asio::ip::udp::endpoint(asio::ip::udp::v4(), port))
+		socket(service, asio::ip::udp::endpoint(asio::ip::address_v4::from_string("0.0.0.0"), port))
 	{
+		socket.set_option(asio::ip::udp::socket::reuse_address(true));
+		socket.set_option(asio::ip::multicast::join_group(
+			asio::ip::address::from_string("239.255.0.1")));
 		start_recieve();
 	}
 
