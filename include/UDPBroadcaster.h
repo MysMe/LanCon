@@ -40,7 +40,7 @@ class UDPBroadcaster
 	void start_send()
 	{
 		socket.async_send_to(asio::buffer("\0", 1),
-			asio::ip::udp::endpoint(asio::ip::address_v4::from_string("239.255.0.1"), port),
+			asio::ip::udp::endpoint(asio::ip::address_v4::broadcast(), port),
 			std::bind(&UDPBroadcaster::handle_send, this,
 				std::placeholders::_1, std::placeholders::_2));
 	}

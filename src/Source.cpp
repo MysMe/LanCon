@@ -193,7 +193,11 @@ void autoBroadcast()
 	}
 }
 
+void fullCon()
+{
+}
+
 int main()
 {
-	autoSend();
+	autoBroadcast();
 }
