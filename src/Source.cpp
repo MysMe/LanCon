@@ -131,73 +131,107 @@ public:
 	}
 };
 
-void autoSend()
+constexpr auto UDPPort = 40404, TCPPort = 40405;
+
+void fullLinkOut()
 {
-	TCPSender send("192.168.1.145", "40404", 1000);
-	while (!send.connected())
+	asio::io_service service;
+	asio::ip::address confirmed;
+
+	UDPBroadcaster broadcast(service, UDPPort);
+
+	broadcast.setOnRespond(
+		[&](const asio::ip::address& address, const UDPDataHandler data)
+		{
+			if (data.getRequest() == UDPRequest::respondAddress)
+			{
+				std::cout << "Recieved response from " << address.to_string() << ".\n";
+				std::cout << "Requesting link...\n";
+				broadcast.requestLink(address, TCPPort);
+				return;
+			}
+			if (data.getRequest() == UDPRequest::acceptLink)
+			{
+				std::cout << address.to_string() << " accepted link request.\n";
+				confirmed = address;
+				service.stop();
+			}
+			if (data.getRequest() == UDPRequest::denyLink)
+			{
+				std::cout << address.to_string() << " denied link request, continuing scan...\n";
+				return;
+			}
+			std::cout << "Unknown request recieved: " << static_cast<uint8_t>(data.getRequest()) << ".\n";
+		}
+	);
+
+	std::cout << "Opening link...\n";
+
+	TCPSender sender(confirmed.to_string(), std::to_string(TCPPort), 1000);
+	while (!sender.connected())
 	{
-		std::cout << "Failed to connect, retrying...\n";
-		send.connect("192.168.1.145", "40404", 1000);
+		std::cout << "Connection failed, retrying...";
+		sender.connect(confirmed.to_string(), std::to_string(TCPPort), 1000);
 	}
-	std::cout << "Connected.\n";
+
+	std::cout << "Connection ready, begin typing.\n";
+
 	while (true)
 	{
 		std::string line;
 		std::getline(std::cin, line);
-		send.send(line);
+		sender.send(line);
 	}
 }
 
-void autoRecieve()
+void fullLinkIn()
 {
 	asio::io_service service;
-	TCPListener listen(service, 40404);
+	UDPResponder responder(service, UDPPort);
+
+	responder.setOnHear(
+		[&](const asio::ip::address& address, const UDPDataHandler& data)
+		{
+			if (data.getRequest() == UDPRequest::requestAddress)
+			{
+				std::cout << "Address requested by " << address.to_string() << ".\n";
+				return UDPDataHandler(UDPRequest::respondAddress);
+			}
+			if (data.getRequest() == UDPRequest::requestLink)
+			{
+				std::cout << "Link requested by " << address.to_string() << ".\n";
+				std::cout << "Accept link? [Y/N]\n";
+				char v;
+				do
+				{
+					std::cin >> v;
+				} while (v != 'Y' || v != 'N');
+				if (v == 'Y')
+				{
+					std::cout << "Opening link...\n";
+					service.stop();
+					return UDPDataHandler(UDPRequest::acceptLink);
+				}
+				else
+				{
+					std::cout << "Denying link...\n";
+					return UDPDataHandler(UDPRequest::denyLink);
+				}
+			}
+			std::cout << "Unknown request recieved: " << static_cast<uint8_t>(data.getRequest()) << ".\n";
+			return UDPDataHandler(UDPRequest::undefined);
+		}
+	);
+
 	service.run();
-}
 
-void autoListen()
-{
-	asio::io_service service;
-	UDPResponder responder(service, 40404);
+	TCPListener listener(service, TCPPort);
 
-	std::cout << "Listening.\n";
-	size_t addC = 0;
-	while (true)
-	{
-		service.run_one_for(std::chrono::seconds(2));
-		if (responder.getAddresses().size() != addC)
-		{
-			std::cout << "New address(es) found:\n";
-			for (const auto& i : responder.getAddresses())
-				std::cout << "\t" << i.to_string() << "\n";
-			addC = responder.getAddresses().size();
-		}
-	}
-}
+	std::cout << "Waiting for link...\n";
 
-void autoBroadcast()
-{
-	asio::io_service service;
-	UDPBroadcaster broadcast(service, 40404);
-	size_t addC = 0;
-	while (true)
-	{
-		service.run_one_for(std::chrono::seconds(2));
-		if (broadcast.getAddresses().size() != addC)
-		{
-			std::cout << "New address(es) found:\n";
-			for (const auto& i : broadcast.getAddresses())
-				std::cout << "\t" << i.to_string() << "\n";
-			addC = broadcast.getAddresses().size();
-		}
-	}
-}
-
-void fullCon()
-{
+	service.run();
 }
 
 int main()
 {
-	autoBroadcast();
 }
