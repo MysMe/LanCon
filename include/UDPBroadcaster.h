@@ -1,8 +1,10 @@
 #pragma once
 #include <asio.hpp>
 #include "UDPRequests.h"
+#include "ServiceBase.h"
+#include <optional>
 
-class UDPBroadcaster
+class UDPBroadcaster : private serviceBase
 {
 	//The last endpoint to respond to a query
 	asio::ip::udp::endpoint responder;
@@ -12,13 +14,10 @@ class UDPBroadcaster
 	unsigned short port;
 
 	UDPDataHandler data;
-	
-	std::function<void(const asio::ip::address&, const UDPDataHandler&)> onRespond;
 
 	//Called once the socket has recieved some information
 	void handle_recieve(const asio::error_code& ec, size_t bytes)
 	{
-		onRespond(responder.address(), data);
 	}
 
 	//Called once the socket has completely sent some information
@@ -33,9 +32,14 @@ class UDPBroadcaster
 	}
 public:
 
+	struct response
+	{
+		asio::ip::udp::endpoint endpoint;
+		UDPDataHandler data;
+	};
+
 	//Constructs a new broadcaster bound to the given service, does not in itself start broadcasting
-	UDPBroadcaster(asio::io_service& service, unsigned short port) : port(port),
-		socket(service)
+	UDPBroadcaster(unsigned short port) : port(port), socket(service)
 	{
 		//Manually open the socket and enable broadcasting
 		socket.open(asio::ip::udp::v4());
@@ -57,9 +61,15 @@ public:
 		wait_recieve();
 	}
 
-	template <class Fn>
-	void setOnRespond(Fn func)
+	std::optional<response> awaitResponse(uint16_t timeoutMS)
 	{
-		onRespond = func;
+		if (service.run_one_for(std::chrono::milliseconds(timeoutMS)) != 0)
+		{
+			response ret;
+			ret.data = data;
+			ret.endpoint = responder;
+			return ret;
+		}
+		return {};
 	}
 };

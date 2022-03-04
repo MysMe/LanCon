@@ -2,7 +2,7 @@
 #include <asio.hpp>
 #include "UDPRequests.h"
 
-class UDPResponder
+class UDPResponder : private serviceBase
 {
 	//The socket being listened on
 	asio::ip::udp::socket socket;
@@ -10,8 +10,6 @@ class UDPResponder
 	asio::ip::udp::endpoint remote;
 	//Last recieved data
 	UDPDataHandler data;
-
-	std::function<UDPDataHandler(const asio::ip::address&, const UDPDataHandler&)> onHear;
 
 	//Called once the system has finished sending some data
 	void handle_message(const asio::error_code&, size_t)
@@ -21,12 +19,10 @@ class UDPResponder
 	//Called once the system has finished recieving some data
 	void handle_recieve(const asio::error_code& ec, size_t bytes)
 	{
-		if (!ec || ec == asio::error::message_size)
+		if (!ec)
 		{
-			auto buf = onHear(remote.address(), data);
-
+			UDPDataHandler buf(UDPRequest::respondAddress);
 			socket.send_to(buf.getBuffer(), remote);
-
 			start_recieve();
 		}
 	}
@@ -42,17 +38,35 @@ class UDPResponder
 
 public:
 
+	struct response
+	{
+		asio::ip::udp::endpoint endpoint;
+		UDPDataHandler data;
+	};
+
 	//Constructs a new responder bound to a given service, does not start listening immediately
 	//Binds the responder to the given port
-	UDPResponder(asio::io_service& service, unsigned short port) :
-		socket(service, asio::ip::udp::endpoint(asio::ip::udp::v4(), port))
+	UDPResponder(unsigned short port) : socket(service, asio::ip::udp::endpoint(asio::ip::udp::v4(), port))
 	{
 		start_recieve();
 	}
 
-	template <class Fn>
-	void setOnHear(Fn func)
+	std::optional<response> awaitRequest(uint16_t timeoutMS)
 	{
-		onHear = func;
+		if (service.run_one_for(std::chrono::milliseconds(timeoutMS)) != 0)
+		{
+			response ret;
+			ret.endpoint = remote;
+			ret.data = data;
+			return ret;
+		}
+		return {};
 	}
+
+	void respond(const response& respondTo, UDPRequest response)
+	{
+		UDPDataHandler buf(response);
+		socket.send_to(buf.getBuffer(), respondTo.endpoint);
+	}
+
 };
