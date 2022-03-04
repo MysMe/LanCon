@@ -202,7 +202,6 @@ void fullLinkIn()
 		{
 			if (linked)
 			{
-				std::cout << "Address requested by " << address.to_string() << " but a link has already been accepted. Ignoring.";
 				return UDPDataHandler(UDPRequest::denyLink);
 			}
 			if (data.getRequest() == UDPRequest::requestAddress)
@@ -222,6 +221,7 @@ void fullLinkIn()
 				if (v == 'Y')
 				{
 					std::cout << "Opening link...\n";
+					linked = true;
 					service.stop();
 					return UDPDataHandler(UDPRequest::acceptLink);
 				}
@@ -239,6 +239,7 @@ void fullLinkIn()
 	std::cout << "Waiting for requests...\n";
 
 	service.run();
+	service.reset();
 
 	TCPListener listener(service, TCPPort);
 
