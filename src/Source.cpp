@@ -165,6 +165,13 @@ void fullLinkOut()
 		}
 	);
 
+	std::cout << "Sending requests...\n";
+	while (confirmed == asio::ip::address{})
+	{
+		broadcast.requestAddress();
+		service.run_for(std::chrono::seconds(2));
+	}
+
 	std::cout << "Opening link...\n";
 
 	TCPSender sender(confirmed.to_string(), std::to_string(TCPPort), 1000);
@@ -188,10 +195,16 @@ void fullLinkIn()
 {
 	asio::io_service service;
 	UDPResponder responder(service, UDPPort);
+	bool linked = false;
 
 	responder.setOnHear(
 		[&](const asio::ip::address& address, const UDPDataHandler& data)
 		{
+			if (linked)
+			{
+				std::cout << "Address requested by " << address.to_string() << " but a link has already been accepted. Ignoring.";
+				return UDPDataHandler(UDPRequest::denyLink);
+			}
 			if (data.getRequest() == UDPRequest::requestAddress)
 			{
 				std::cout << "Address requested by " << address.to_string() << ".\n";
@@ -205,7 +218,7 @@ void fullLinkIn()
 				do
 				{
 					std::cin >> v;
-				} while (v != 'Y' || v != 'N');
+				} while (v != 'Y' && v != 'N');
 				if (v == 'Y')
 				{
 					std::cout << "Opening link...\n";
@@ -223,6 +236,8 @@ void fullLinkIn()
 		}
 	);
 
+	std::cout << "Waiting for requests...\n";
+
 	service.run();
 
 	TCPListener listener(service, TCPPort);
@@ -234,4 +249,5 @@ void fullLinkIn()
 
 int main()
 {
+	fullLinkIn();
 }
