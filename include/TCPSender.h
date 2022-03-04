@@ -64,7 +64,13 @@ public:
 	void send(const std::string& message)
 	{
 		const uint32_t size = message.size();
-		socket.send(asio::buffer(&size, sizeof(size)));
+		//Ensure the data is consistent between various endian systems
+		uint8_t lolo = (size >> 0) & 0xFF;
+		uint8_t lohi = (size >> 8) & 0xFF;
+		uint8_t hilo = (size >> 16) & 0xFF;
+		uint8_t hihi = (size >> 24) & 0xFF;
+
+		socket.send(asio::buffer(&lolo, 4));
 		socket.send(asio::buffer(message));
 	}
 };
