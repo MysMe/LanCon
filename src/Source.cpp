@@ -87,6 +87,7 @@ void fullLinkOut()
 void fullLinkIn()
 {
 	UDPResponder responder(UDPPort);
+	asio::ip::udp::endpoint confirmed;
 	std::cout << "Waiting for requests...\n";
 
 	while (true)
@@ -109,6 +110,7 @@ void fullLinkIn()
 			} while (c != 'Y' && c != 'N');
 			if (c == 'Y')
 			{
+				confirmed = v.value().endpoint;
 				break;
 			}
 		}
@@ -128,6 +130,7 @@ void fullLinkIn()
 		}
 		else
 		{
+			responder.respond(confirmed, UDPRequest::acceptLink);
 			std::cout << ".";
 		}
 	}
@@ -149,5 +152,5 @@ void fullLinkIn()
 
 int main()
 {
-	fullLinkIn();
+	fullLinkOut();
 }

@@ -65,8 +65,12 @@ public:
 
 	void respond(const response& respondTo, UDPRequest response)
 	{
-		UDPDataHandler buf(response);
-		socket.send_to(buf.getBuffer(), respondTo.endpoint);
+		respond(respondTo.endpoint, response);
 	}
 
+	void respond(const asio::ip::udp::endpoint& respondTo, UDPRequest response)
+	{
+		UDPDataHandler buf(response);
+		socket.send_to(buf.getBuffer(), respondTo);
+	}
 };
