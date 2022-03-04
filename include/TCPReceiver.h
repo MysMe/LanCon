@@ -11,6 +11,8 @@ class TCPListener : private serviceBase
 	uint32_t writePos = 0;
 	uint16_t blockSize = 1000;
 
+	static constexpr auto sizeInfoSize = sizeof(uint32_t);
+
 	bool accepted = false;
 	bool sized = false;
 	bool complete = false;
@@ -21,7 +23,7 @@ class TCPListener : private serviceBase
 		{
 			if (!sized)
 			{
-				if (bytes != 4)
+				if (bytes != sizeInfoSize)
 					return;
 
 				uint32_t messageSize =
@@ -42,7 +44,6 @@ class TCPListener : private serviceBase
 			if (writePos >= buffer.size())
 			{
 				complete = true;
-				return;
 			}
 		}
 		start_read();
@@ -50,9 +51,19 @@ class TCPListener : private serviceBase
 
 	void start_read()
 	{
-		socket.async_receive(asio::buffer(buffer.data() + writePos, blockSize),
-			std::bind(&TCPListener::handle_read, this,
-				std::placeholders::_1, std::placeholders::_2));
+		//When a message is not yet recieved or the previous message has completed recieving, expect to receive a size next
+		if (!sized || complete)
+		{
+			socket.async_receive(asio::buffer(buffer.data(), sizeInfoSize),
+				std::bind(&TCPListener::handle_read, this,
+					std::placeholders::_1, std::placeholders::_2));
+		}
+		else
+		{
+			socket.async_receive(asio::buffer(buffer.data() + writePos, blockSize),
+				std::bind(&TCPListener::handle_read, this,
+					std::placeholders::_1, std::placeholders::_2));
+		}
 	}
 
 
@@ -80,8 +91,7 @@ public:
 	TCPListener(unsigned short port, uint16_t readBlockSize = 1000) : acceptor(service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)),
 		socket(service), blockSize(readBlockSize)
 	{
-		if (blockSize < 10)
-			blockSize = 10;
+		buffer.resize(sizeInfoSize);
 		start_accept();
 	}
 
@@ -118,8 +128,8 @@ public:
 
 		writePos = 0;
 		buffer.clear();
+		buffer.resize(sizeInfoSize);
 		sized = false;
 		complete = false;
-		start_read();
 	}
 };
