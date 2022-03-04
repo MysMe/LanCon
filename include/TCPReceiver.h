@@ -18,6 +18,7 @@ class TCPListener : private serviceBase
 		if (ec == asio::error::eof)
 		{
 			complete = true;
+			start_read();
 			return;
 		}
 		if (!ec)
@@ -43,6 +44,11 @@ class TCPListener : private serviceBase
 		if (!ec)
 		{
 			accepted = true;
+			start_read();
+		}
+		else
+		{
+			start_accept();
 		}
 	}
 
