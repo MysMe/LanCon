@@ -152,5 +152,5 @@ void fullLinkIn()
 
 int main()
 {
-	fullLinkIn();
+	fullLinkOut();
 }

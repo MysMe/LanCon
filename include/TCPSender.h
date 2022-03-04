@@ -63,14 +63,19 @@ public:
 
 	void send(const std::string& message)
 	{
+		//Do not send empty messages, asio does not send empty TCP packets, intefering with the size-based messaging system
+		if (message.empty())
+			return;
+
 		const uint32_t size = message.size();
 		//Ensure the data is consistent between various endian systems
-		uint8_t lolo = (size >> 0) & 0xFF;
-		uint8_t lohi = (size >> 8) & 0xFF;
-		uint8_t hilo = (size >> 16) & 0xFF;
-		uint8_t hihi = (size >> 24) & 0xFF;
+		std::array<uint8_t, 4> bytes;
+		bytes[0] = (size >> 0) & 0xFF;
+		bytes[1] = (size >> 8) & 0xFF;
+		bytes[2] = (size >> 16) & 0xFF;
+		bytes[3] = (size >> 24) & 0xFF;
 
-		socket.send(asio::buffer(&lolo, 4));
+		socket.send(asio::buffer(bytes));
 		socket.send(asio::buffer(message));
 	}
 };
