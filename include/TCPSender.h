@@ -1,14 +1,17 @@
 #pragma once
 #include "ServiceBase.h"
 
+//A class for one-way sending of messages
 class TCPSender : private serviceBase
 {
 	asio::ip::tcp::resolver resolver;
 	asio::ip::tcp::socket socket;
+	//Whether or not the socket has been connected to anything
 	bool isConnected = false;
 
 	void handle_connect(const asio::error_code& ec)
 	{
+		//Only connect if this event is called without error
 		if (!ec)
 			isConnected = true;
 	}
@@ -19,6 +22,7 @@ public:
 		: socket(service), resolver(service)
 	{}
 
+	//Construct and connect in one function
 	TCPSender(const std::string& IP, const std::string& port, std::size_t timeoutMS)
 		: socket(service), resolver(service)
 	{
@@ -34,6 +38,7 @@ public:
 	{
 		if (connected())
 		{
+			//Gracefully shuts down both ends of the connection
 			socket.shutdown(socket.shutdown_both);
 			isConnected = false;
 		}

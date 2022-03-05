@@ -14,6 +14,7 @@ class UDPResponder : private serviceBase
 	//Called once the system has finished sending some data
 	void handle_message(const asio::error_code&, size_t)
 	{
+		//Do nothing, we let the caller handle this
 	}
 
 	//Called once the system has finished recieving some data
@@ -38,6 +39,7 @@ class UDPResponder : private serviceBase
 
 public:
 
+	//A combination of data and a sender
 	struct response
 	{
 		asio::ip::udp::endpoint endpoint;
@@ -51,6 +53,7 @@ public:
 		start_recieve();
 	}
 
+	//Awaits any request from a device, the data segment can be used to determine the request being provided
 	std::optional<response> awaitRequest(uint16_t timeoutMS)
 	{
 		if (service.run_one_for(std::chrono::milliseconds(timeoutMS)) != 0)
@@ -63,11 +66,13 @@ public:
 		return {};
 	}
 
+	//Sends a response to a specific endpoint
 	void respond(const response& respondTo, UDPRequest response)
 	{
 		respond(respondTo.endpoint, response);
 	}
 
+	//Sends a response to a specific endpoint
 	void respond(const asio::ip::udp::endpoint& respondTo, UDPRequest response)
 	{
 		UDPDataHandler buf(response);

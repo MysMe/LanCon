@@ -2,19 +2,26 @@
 #include "ServiceBase.h"
 #include <optional>
 
+//A class for recieving one-way messages
 class TCPListener : private serviceBase
 {
 	asio::ip::tcp::acceptor acceptor;
 	asio::ip::tcp::socket socket;
 
+	//A buffer containing the message so far
 	std::string buffer;
+	//Indicates where in the buffer the next message should write to
 	uint32_t writePos = 0;
+	//Maximum number of bytes to read in one go
 	uint16_t blockSize = 1000;
 
 	static constexpr auto sizeInfoSize = sizeof(uint32_t);
 
+	//Whether or not a connection has been accepted
 	bool accepted = false;
+	//Whether the class has recieved size information for the current message
 	bool sized = false;
+	//Whether the current message has finished sending
 	bool complete = false;
 
 	void handle_read(const asio::error_code& ec, size_t bytes)
@@ -23,6 +30,7 @@ class TCPListener : private serviceBase
 		{
 			if (!sized)
 			{
+				//If the size has not been recieved, assume it is the current packet
 				if (bytes != sizeInfoSize)
 					return;
 
@@ -32,8 +40,8 @@ class TCPListener : private serviceBase
 					(buffer[1] << 8)  |
 					(buffer[0] << 0);
 
-				std::cout << "Message size: " << messageSize << ".\n";
-				buffer.clear();
+				//Reset the buffer
+				writePos = 0;
 				buffer.resize(messageSize);
 				sized = true;
 				start_read();
@@ -71,11 +79,13 @@ class TCPListener : private serviceBase
 	{
 		if (!ec)
 		{
+			//Once the connection has been confirmed, begin reading messages
 			accepted = true;
 			start_read();
 		}
 		else
 		{
+			//If the connection is rejected, start waiting for another one
 			start_accept();
 		}
 	}

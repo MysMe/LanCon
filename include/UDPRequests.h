@@ -4,24 +4,26 @@
 
 enum class UDPRequest : uint8_t
 {
-	undefined,
-	requestAddress,
-	respondAddress,
-	requestLink,
-	acceptLink,
-	denyLink
+	undefined, //No use, any time this is seen is an error
+	requestAddress, //Broadcast from a device searching for other devices
+	respondAddress, //Response given when a device has been asked for its adress
+	requestLink, //Sent from a device looking to open a TCP connection
+	acceptLink, //Positive response to open a TCP connection
+	denyLink //Negative response to open a TCP connection
 };
 
 //Stores a single UDPRequest and an additional data segment for sending over UDP endpoints
 class UDPDataHandler
 {
 public:
+	//Additional data sent with a request
 	using additional_t = uint16_t;
 
 private:
 
 	static constexpr std::size_t additionalDataSize = sizeof(additional_t);
 
+	//Both request and data in a single array
 	std::array<std::byte, sizeof(UDPRequest) + additionalDataSize> buffer{};
 public:
 
