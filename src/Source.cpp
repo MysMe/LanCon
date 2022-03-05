@@ -59,7 +59,7 @@ std::optional<CMDOptions> parse(int argc, char** argv)
 	for (int i = 1; i < argc; i++)
 	{
 		const bool hasNext = i < (argc - 1);
-		if (argv[i] == "-l")
+		if (std::strcmp(argv[i], "-l") == 0)
 		{
 			if (ret.progMode != CMDOptions::mode::none)
 			{
@@ -70,7 +70,7 @@ std::optional<CMDOptions> parse(int argc, char** argv)
 			continue;
 		}
 
-		if (argv[i] == "-b")
+		if (std::strcmp(argv[i], "-b") == 0)
 		{
 			if (ret.progMode != CMDOptions::mode::none)
 			{
@@ -81,7 +81,7 @@ std::optional<CMDOptions> parse(int argc, char** argv)
 			continue;
 		}
 
-		if (argv[i] == "-s")
+		if (std::strcmp(argv[i], "-s") == 0)
 		{
 			if (ret.progMode != CMDOptions::mode::none)
 			{
@@ -108,7 +108,7 @@ std::optional<CMDOptions> parse(int argc, char** argv)
 		}
 
 
-		if (argv[i] == "-TCPPort")
+		if (std::strcmp(argv[i], "-TCPPort") == 0)
 		{
 			if (!hasNext)
 			{
@@ -125,7 +125,7 @@ std::optional<CMDOptions> parse(int argc, char** argv)
 			continue;
 		}
 
-		if (argv[i] == "-UDPPort")
+		if (std::strcmp(argv[i], "-UDPPort") == 0)
 		{
 			if (!hasNext)
 			{
@@ -142,7 +142,7 @@ std::optional<CMDOptions> parse(int argc, char** argv)
 			continue;
 		}
 
-		if (argv[i] == "-m")
+		if (std::strcmp(argv[i], "-m") == 0)
 		{
 			if (ret.contentType != CMDOptions::contents::none)
 			{
@@ -161,7 +161,7 @@ std::optional<CMDOptions> parse(int argc, char** argv)
 			continue;
 		}
 
-		if (argv[i] == "-f")
+		if (std::strcmp(argv[i], "-f") == 0)
 		{
 			if (ret.contentType != CMDOptions::contents::none)
 			{
@@ -180,7 +180,7 @@ std::optional<CMDOptions> parse(int argc, char** argv)
 			continue;
 		}
 
-		if (argv[i] == "-freq")
+		if (std::strcmp(argv[i], "-freq") == 0)
 		{
 			if (!hasNext)
 			{
