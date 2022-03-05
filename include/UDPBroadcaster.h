@@ -68,6 +68,7 @@ public:
 	//Waits for a response to any request, the data segment indicates which request is being responded to
 	std::optional<response> awaitResponse(uint16_t timeoutMS)
 	{
+		const auto b = service.stopped();
 		//The only event that can run is a recieve, ergo either 1 receive runs or none run
 		if (service.run_one_for(std::chrono::milliseconds(timeoutMS)) != 0)
 		{

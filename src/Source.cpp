@@ -98,11 +98,13 @@ std::optional<CMDOptions> parse(int argc, char** argv)
 
 			asio::error_code ec;
 			ret.address = asio::ip::address_v4::from_string(argv[i + 1], ec);
-			if (!ec)
+			if (ec)
 			{
 				std::cout << "Error: Unable to parse address \"" << argv[i + 1] << "\".\n";
 				return {};
 			}
+
+			i++;
 
 			continue;
 		}
@@ -122,6 +124,7 @@ std::optional<CMDOptions> parse(int argc, char** argv)
 				std::cout << "Unable to parse tcp port \"" << argv[i + 1] << "\".\n";
 				return {};
 			}
+			i++;
 			continue;
 		}
 
@@ -139,6 +142,7 @@ std::optional<CMDOptions> parse(int argc, char** argv)
 				std::cout << "Unable to parse udp port \"" << argv[i + 1] << "\".\n";
 				return {};
 			}
+			i++;
 			continue;
 		}
 
@@ -158,6 +162,7 @@ std::optional<CMDOptions> parse(int argc, char** argv)
 
 			ret.data = argv[i + 1];
 			ret.contentType = CMDOptions::contents::message;
+			i++;
 			continue;
 		}
 
@@ -177,6 +182,7 @@ std::optional<CMDOptions> parse(int argc, char** argv)
 
 			ret.data = argv[i + 1];
 			ret.contentType = CMDOptions::contents::file;
+			i++;
 			continue;
 		}
 
@@ -194,6 +200,7 @@ std::optional<CMDOptions> parse(int argc, char** argv)
 				std::cout << "Unable to parse frequency value \"" << argv[i + 1] << "\".\n";
 				return {};
 			}
+			i++;
 			continue;
 		}
 
@@ -239,6 +246,7 @@ void listen(const CMDOptions& opt)
 	UDPResponder responder(opt.UDPPort);
 
 	uint16_t port = 0;
+	asio::ip::udp::endpoint endpoint;
 
 	std::cout << "Listening on UDP port " << opt.UDPPort << ".\n";
 
@@ -275,7 +283,12 @@ void listen(const CMDOptions& opt)
 			if (v == 'Y')
 			{
 				port = res.data.getAdditional();
+				endpoint = res.endpoint;
 				break;
+			}
+			else
+			{
+				responder.respond(res.endpoint, UDPRequest::denyLink);
 			}
 		}
 	}
@@ -286,6 +299,7 @@ void listen(const CMDOptions& opt)
 
 	while (true)
 	{
+		responder.respond(endpoint, UDPRequest::acceptLink);
 		if (!listener.awaitAccept(opt.frequency))
 		{
 			std::cout << ".";
@@ -384,6 +398,7 @@ void send(const CMDOptions& opt)
 				std::cout << "\nLink denied.\n";
 				return;
 			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(opt.frequency));
 		}
 		std::cout << ".";
 	}
