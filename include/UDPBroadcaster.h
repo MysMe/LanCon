@@ -19,7 +19,8 @@ class UDPBroadcaster : private serviceBase
 	//Called once the socket has recieved some information
 	void handle_recieve(const asio::error_code& ec, size_t bytes)
 	{
-		//Do nothing, we let the caller handle this
+		//Enque another recieve
+		wait_recieve();
 	}
 
 	//Enques a recieve event but does not directly block waiting for it
@@ -47,6 +48,7 @@ public:
 		socket.open(asio::ip::udp::v4());
 		socket.set_option(asio::ip::udp::socket::reuse_address(true));
 		socket.set_option(asio::socket_base::broadcast(true));
+		wait_recieve();
 	}
 
 	//Sends a broadcast searching for any devices running this program
@@ -54,7 +56,6 @@ public:
 	{
 		UDPDataHandler send(UDPRequest::requestAddress);
 		socket.send_to(send.getBuffer(), asio::ip::udp::endpoint(asio::ip::address_v4::broadcast(), port));
-		wait_recieve();
 	}
 
 	//Sends a request to a specific device asking to open a TCP connection
@@ -62,7 +63,6 @@ public:
 	{
 		UDPDataHandler send(UDPRequest::requestLink, linkPort);
 		socket.send_to(send.getBuffer(), asio::ip::udp::endpoint(target, port));
-		wait_recieve();
 	}
 
 	//Waits for a response to any request, the data segment indicates which request is being responded to
