@@ -13,6 +13,7 @@ add_executable(${PROJECT_NAME} "")
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 add_subdirectory(src)
 add_subdirectory(include)
+add_subdirectory(interface)
 
 find_package(asio CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE asio asio::asio)

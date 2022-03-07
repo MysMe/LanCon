@@ -1,6 +1,8 @@
 #pragma once
 #include <asio.hpp>
 #include "UDPRequests.h"
+#include <optional>
+#include "UDPMessage.h"
 
 class UDPResponder : private serviceBase
 {
@@ -39,13 +41,6 @@ class UDPResponder : private serviceBase
 
 public:
 
-	//A combination of data and a sender
-	struct response
-	{
-		asio::ip::udp::endpoint endpoint;
-		UDPDataHandler data;
-	};
-
 	//Constructs a new responder bound to a given service, does not start listening immediately
 	//Binds the responder to the given port
 	UDPResponder(unsigned short port) : socket(service, asio::ip::udp::endpoint(asio::ip::udp::v4(), port))
@@ -54,11 +49,11 @@ public:
 	}
 
 	//Awaits any request from a device, the data segment can be used to determine the request being provided
-	std::optional<response> awaitRequest(uint16_t timeoutMS)
+	std::optional<UDPMessage> awaitRequest(uint16_t timeoutMS)
 	{
 		if (service.run_one_for(std::chrono::milliseconds(timeoutMS)) != 0)
 		{
-			response ret;
+			UDPMessage ret;
 			ret.endpoint = remote;
 			ret.data = data;
 			return ret;
@@ -67,7 +62,7 @@ public:
 	}
 
 	//Sends a response to a specific endpoint
-	void respond(const response& respondTo, UDPRequest response)
+	void respond(const UDPMessage& respondTo, UDPRequest response)
 	{
 		respond(respondTo.endpoint, response);
 	}

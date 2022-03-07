@@ -3,6 +3,7 @@
 #include "UDPRequests.h"
 #include "ServiceBase.h"
 #include <optional>
+#include "UDPMessage.h"
 
 //A class designed to send broadcast packets in order to discover other devices running this program
 class UDPBroadcaster : private serviceBase
@@ -34,13 +35,6 @@ class UDPBroadcaster : private serviceBase
 	}
 public:
 
-	//A combination of data and a sender
-	struct response
-	{
-		asio::ip::udp::endpoint endpoint;
-		UDPDataHandler data;
-	};
-
 	//Constructs a new broadcaster bound to the given service, does not in itself start broadcasting
 	UDPBroadcaster(unsigned short port) : port(port), socket(service)
 	{
@@ -66,13 +60,13 @@ public:
 	}
 
 	//Waits for a response to any request, the data segment indicates which request is being responded to
-	std::optional<response> awaitResponse(uint16_t timeoutMS)
+	std::optional<UDPMessage> awaitResponse(uint16_t timeoutMS)
 	{
 		const auto b = service.stopped();
 		//The only event that can run is a recieve, ergo either 1 receive runs or none run
 		if (service.run_one_for(std::chrono::milliseconds(timeoutMS)) != 0)
 		{
-			response ret;
+			UDPMessage ret;
 			ret.data = data;
 			ret.endpoint = responder;
 			return ret;

@@ -1,44 +1,32 @@
 #pragma once
 #include "UDPBroadcaster.h"
+#include "Export.h"
 
-struct packedBroadcaster
+LANCONEXPORT UDPBroadcaster* broadcaster_new(unsigned short port)
 {
-	asio::io_service service;
-	UDPBroadcaster broadcaster;
-
-	packedBroadcaster(unsigned short port) : broadcaster(service, port) {}
-};
-
-struct packedData
-{
-	asio::ip::address source;
-	UDPDataHandler data;
-};
-
-packedBroadcaster* UDPB_new(unsigned short port)
-{
-	return new packedBroadcaster(port);
+	return new UDPBroadcaster(port);
 }
 
-void UDPB_delete(packedBroadcaster* obj)
+LANCONEXPORT void broadcaster_delete(UDPBroadcaster* obj)
 {
 	delete obj;
 }
 
-void UDPB_request_addresses(packedBroadcaster* obj)
+LANCONEXPORT void broadcaster_request_addresses(UDPBroadcaster* obj)
 {
-	obj->broadcaster.requestAddress();
+	obj->requestAddress();
 }
 
-void UDPB_request_link(packedBroadcaster* obj, asio::ip::address* address, uint16_t linkPort)
+LANCONEXPORT void broadcaster_request_link(UDPBroadcaster* obj, const char* const target, unsigned short linkPort)
 {
-	obj->broadcaster.requestLink(*address, linkPort);
+	obj->requestLink(asio::ip::address::from_string(target), linkPort);
 }
 
-packedData* UDPB_await_response(packedBroadcaster* obj, unsigned int timeoutMS)
+//May return nullptr if no response recieved
+LANCONEXPORT UDPMessage* broadcaster_await_response_new(UDPBroadcaster* obj, uint16_t timeoutMS)
 {
-	if (obj->service.run_one_for(std::chrono::milliseconds(timeoutMS)) != 0)
-	{
-		packedData* ret = new packedData;
-	}
+	const auto v = obj->awaitResponse(timeoutMS);
+	if (!v)
+		return nullptr;
+	return new UDPMessage(std::move(v.value()));
 }
