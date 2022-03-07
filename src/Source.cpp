@@ -273,7 +273,7 @@ void listen(const CMDOptions& opt)
 
 		if (res.data.getRequest() == UDPRequest::requestLink)
 		{
-			std::cout << res.endpoint.address().to_string() << " would like to send a file over TCP port " << res.data.getAdditional() << ".\nAccept? [Y/N]\n";
+			std::cout << res.endpoint.address().to_string() << " would like to send data over TCP port " << res.data.getAdditional() << ".\nAccept? [Y/N]\n";
 			char v;
 			do
 			{
@@ -300,12 +300,13 @@ void listen(const CMDOptions& opt)
 	while (true)
 	{
 		responder.respond(endpoint, UDPRequest::acceptLink);
-		if (!listener.awaitAccept(opt.frequency))
+		if (listener.awaitAccept(opt.frequency))
 		{
-			std::cout << ".";
+			break;
 		}
+		std::cout << ".";
 	}
-	std::cout << "\n Link accepted.\n";
+	std::cout << "\nLink accepted.\n";
 	std::cout << "Awaiting data.\n";
 
 	while (true)
@@ -329,7 +330,7 @@ void listen(const CMDOptions& opt)
 			{
 				std::cout << mv.value().get();
 			}
-			std::cout << "\nDone.\n";
+			std::cout << "\nDone." << std::endl;
 			return;
 		}
 	}
