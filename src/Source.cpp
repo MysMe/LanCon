@@ -43,14 +43,14 @@ void printOptions()
 {
 	std::cout <<
 		"LanCon options:\n" <<
-		"-l              Enables listening mode.\n" <<
-		"-b              Enables broadcast mode. A broadcast is sent each time a request times out.\n" <<
-		"-s [ADDRESS]    Enables send mode targeting a specific device.\n" <<
-		"-TCPPort [PORT] Specifies which port to use for data transmission (-s only) (default: " << CMDOptions().TCPPort << ").\n" <<
-		"-UDPPort [PORT] Specifies which port to use for program discovery (all modes) (default: " << CMDOptions().UDPPort << ").\n" <<
-		"-m [MESSAGE]    Specifies a message to send to the end device.\n" <<
-		"-f [FILE]       Specifies a file to be written into or read from (-l/-s).\n" <<
-		"-freq [MILSECS] Specifies the delay between operations (all modes) (default: " << CMDOptions().frequency << ").\n\n";
+		"-l              | Enables listening mode.\n" <<
+		"-b              | Enables broadcast mode. A broadcast is sent each time a request times out.\n" <<
+		"-s    [ADDRESS] | Enables send mode targeting a specific device.\n" <<
+		"-TCPPort [PORT] | Specifies which port to use for data transmission (-s only) (default: " << CMDOptions().TCPPort << ").\n" <<
+		"-UDPPort [PORT] | Specifies which port to use for program discovery (all modes) (default: " << CMDOptions().UDPPort << ").\n" <<
+		"-m    [MESSAGE] | Specifies a message to send to the end device.\n" <<
+		"-f       [FILE] | Specifies a file to be written into or read from (-l/-s).\n" <<
+		"-freq [MILSECS] | Specifies the delay between operations (all modes) (default: " << CMDOptions().frequency << ").\n\n";
 }
 
 std::optional<CMDOptions> parse(int argc, char** argv)
