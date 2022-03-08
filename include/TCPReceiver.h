@@ -98,7 +98,7 @@ class TCPListener : private serviceBase
 	}
 
 public:
-	TCPListener(unsigned short port, uint16_t readBlockSize = 1000) : acceptor(service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)),
+	TCPListener(unsigned short port, uint16_t readBlockSize = 1024) : acceptor(service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)),
 		socket(service), blockSize(readBlockSize)
 	{
 		buffer.resize(sizeInfoSize);
