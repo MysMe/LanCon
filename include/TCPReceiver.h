@@ -1,6 +1,8 @@
 #pragma once
 #include "ServiceBase.h"
+#include <cstdint>
 #include <optional>
+#include <string>
 
 //A class for recieving one-way messages
 class TCPReceiver : private serviceBase

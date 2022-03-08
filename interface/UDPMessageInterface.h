@@ -1,6 +1,6 @@
 #pragma once
-#include "UDPMessage.h"
 #include "Export.h"
+#include "UDPMessage.h"
 
 LANCONEXPORT void UDPMessage_delete(UDPMessage* obj)
 {

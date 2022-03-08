@@ -1,5 +1,7 @@
 #pragma once
 #include "ServiceBase.h"
+#include <cstdint>
+#include <string>
 
 //A class for one-way sending of messages
 class TCPSender : private serviceBase

@@ -1,9 +1,9 @@
 #pragma once
-#include <asio.hpp>
-#include "UDPRequests.h"
 #include "ServiceBase.h"
-#include <optional>
 #include "UDPMessage.h"
+#include "UDPRequests.h"
+#include <cstdint>
+#include <optional>
 
 //A class designed to send broadcast packets in order to discover other devices running this program
 class UDPSender : private serviceBase

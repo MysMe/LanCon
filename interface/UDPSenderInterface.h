@@ -1,6 +1,6 @@
 #pragma once
-#include "UDPBroadcaster.h"
 #include "Export.h"
+#include "UDPSender.h"
 
 LANCONEXPORT UDPSender* UDPSender_new(unsigned short port)
 {

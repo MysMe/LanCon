@@ -1,6 +1,6 @@
 #pragma once
-#include "UDPListener.h"
 #include "Export.h"
+#include "UDPReceiver.h"
 
 LANCONEXPORT UDPReceiver* UDPReceiver_new(unsigned short port)
 {
