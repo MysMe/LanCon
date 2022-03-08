@@ -33,7 +33,7 @@ LANCONEXPORT void TCPReceiver_string_delete(char* str)
 }
 
 //May return nullptr
-LANCONEXPORT char* TCPReceiver_await_message(TCPReceiver* obj, uint16_t timeoutMS)
+LANCONEXPORT char* TCPReceiver_await_message_new(TCPReceiver* obj, uint16_t timeoutMS)
 {
 	const auto v = obj->awaitMessage(timeoutMS);
 	if (!v)

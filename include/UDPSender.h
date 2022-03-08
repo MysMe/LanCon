@@ -66,6 +66,10 @@ public:
 		//The only event that can run is a recieve, ergo either 1 receive runs or none run
 		if (service.run_one_for(std::chrono::milliseconds(timeoutMS)) != 0)
 		{
+			//Ignore default address as this binds to anything
+			if (responder.address().is_unspecified())
+				return {};
+
 			UDPMessage ret;
 			ret.data = data;
 			ret.endpoint = responder;
