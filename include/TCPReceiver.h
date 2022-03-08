@@ -3,7 +3,7 @@
 #include <optional>
 
 //A class for recieving one-way messages
-class TCPListener : private serviceBase
+class TCPReceiver : private serviceBase
 {
 	asio::ip::tcp::acceptor acceptor;
 	asio::ip::tcp::socket socket;
@@ -63,13 +63,13 @@ class TCPListener : private serviceBase
 		if (!sized || complete)
 		{
 			socket.async_receive(asio::buffer(buffer.data(), sizeInfoSize),
-				std::bind(&TCPListener::handle_read, this,
+				std::bind(&TCPReceiver::handle_read, this,
 					std::placeholders::_1, std::placeholders::_2));
 		}
 		else
 		{
 			socket.async_receive(asio::buffer(buffer.data() + writePos, blockSize),
-				std::bind(&TCPListener::handle_read, this,
+				std::bind(&TCPReceiver::handle_read, this,
 					std::placeholders::_1, std::placeholders::_2));
 		}
 	}
@@ -93,12 +93,12 @@ class TCPListener : private serviceBase
 	void start_accept()
 	{
 		acceptor.async_accept(socket,
-			std::bind(&TCPListener::handle_accept, this,
+			std::bind(&TCPReceiver::handle_accept, this,
 				std::placeholders::_1));
 	}
 
 public:
-	TCPListener(unsigned short port, uint16_t readBlockSize = 1024) : acceptor(service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)),
+	TCPReceiver(unsigned short port, uint16_t readBlockSize = 1024) : acceptor(service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)),
 		socket(service), blockSize(readBlockSize)
 	{
 		buffer.resize(sizeInfoSize);

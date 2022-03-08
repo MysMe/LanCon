@@ -4,7 +4,7 @@
 #include <optional>
 #include "UDPMessage.h"
 
-class UDPResponder : private serviceBase
+class UDPReceiver : private serviceBase
 {
 	//The socket being listened on
 	asio::ip::udp::socket socket;
@@ -35,7 +35,7 @@ class UDPResponder : private serviceBase
 	{
 		socket.async_receive_from(
 			data.getBuffer(), remote,
-			std::bind(&UDPResponder::handle_recieve, this,
+			std::bind(&UDPReceiver::handle_recieve, this,
 				std::placeholders::_1, std::placeholders::_2));
 	}
 
@@ -43,7 +43,7 @@ public:
 
 	//Constructs a new responder bound to a given service, does not start listening immediately
 	//Binds the responder to the given port
-	UDPResponder(unsigned short port) : socket(service, asio::ip::udp::endpoint(asio::ip::udp::v4(), port))
+	UDPReceiver(unsigned short port) : socket(service, asio::ip::udp::endpoint(asio::ip::udp::v4(), port))
 	{
 		start_recieve();
 	}

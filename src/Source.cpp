@@ -243,7 +243,7 @@ std::optional<std::string> readFromFile(const std::string& path)
 
 void listen(const CMDOptions& opt)
 {
-	UDPResponder responder(opt.UDPPort);
+	UDPReceiver responder(opt.UDPPort);
 
 	uint16_t port = 0;
 	asio::ip::udp::endpoint endpoint;
@@ -295,7 +295,7 @@ void listen(const CMDOptions& opt)
 
 	std::cout << "Awaiting link on TCP port " << port << ".\n";
 
-	TCPListener listener(port);
+	TCPReceiver listener(port);
 
 	while (true)
 	{
@@ -338,7 +338,7 @@ void listen(const CMDOptions& opt)
 
 void broadcast(const CMDOptions& opt)
 {
-	UDPBroadcaster broadcast(opt.UDPPort);
+	UDPSender broadcast(opt.UDPPort);
 
 	std::cout << "Starting broadcast on UDP port " << opt.UDPPort << ".\n";
 
@@ -379,7 +379,7 @@ void send(const CMDOptions& opt)
 		message = mc.value();
 	}
 
-	UDPBroadcaster linkAsk(opt.UDPPort);
+	UDPSender linkAsk(opt.UDPPort);
 
 	std::cout << "Requesting link using UDP port " << opt.UDPPort << " to send over TCP port " << opt.TCPPort << ".\n";
 

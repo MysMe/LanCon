@@ -6,7 +6,7 @@
 #include "UDPMessage.h"
 
 //A class designed to send broadcast packets in order to discover other devices running this program
-class UDPBroadcaster : private serviceBase
+class UDPSender : private serviceBase
 {
 	//The last endpoint to respond to a query
 	asio::ip::udp::endpoint responder;
@@ -29,14 +29,14 @@ class UDPBroadcaster : private serviceBase
 	{
 		socket.async_receive_from(
 			data.getBuffer(), responder,
-			std::bind(&UDPBroadcaster::handle_recieve, this,
+			std::bind(&UDPSender::handle_recieve, this,
 				std::placeholders::_1, std::placeholders::_2));
 
 	}
 public:
 
 	//Constructs a new broadcaster bound to the given service, does not in itself start broadcasting
-	UDPBroadcaster(unsigned short port) : port(port), socket(service)
+	UDPSender(unsigned short port) : port(port), socket(service)
 	{
 		//Manually open the socket and enable broadcasting
 		socket.open(asio::ip::udp::v4());

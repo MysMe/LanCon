@@ -2,18 +2,18 @@
 #include "Export.h"
 #include "TCPReceiver.h"
 
-LANCONEXPORT TCPListener* TCPListener_new(unsigned short port)
+LANCONEXPORT TCPReceiver* TCPReceiver_new(unsigned short port)
 {
-	return new TCPListener(port);
+	return new TCPReceiver(port);
 }
 
-LANCONEXPORT void TCPListener_delete(TCPListener* obj)
+LANCONEXPORT void TCPReceiver_delete(TCPReceiver* obj)
 {
 	delete obj;
 }
 
 //May return nullptr
-LANCONEXPORT char* TCPListener_await_accept_new(TCPListener* obj, uint16_t timeoutMS)
+LANCONEXPORT char* TCPReceiver_await_accept_new(TCPReceiver* obj, uint16_t timeoutMS)
 {
 	const std::optional<asio::ip::address> v = obj->awaitAccept(timeoutMS);
 	if (!v)
@@ -27,12 +27,12 @@ LANCONEXPORT char* TCPListener_await_accept_new(TCPListener* obj, uint16_t timeo
 	return ret;
 }
 
-LANCONEXPORT void TCPListener_string_delete(char* str)
+LANCONEXPORT void TCPReceiver_string_delete(char* str)
 {
 	delete[] str;
 }
 
-LANCONEXPORT char* TCPListener_await_message(TCPListener* obj, uint16_t timeoutMS)
+LANCONEXPORT char* TCPReceiver_await_message(TCPReceiver* obj, uint16_t timeoutMS)
 {
 	const auto v = obj->awaitMessage(timeoutMS);
 	if (!v)
@@ -45,7 +45,7 @@ LANCONEXPORT char* TCPListener_await_message(TCPListener* obj, uint16_t timeoutM
 	return ret;
 }
 
-LANCONEXPORT void TCPListener_clear_message(TCPListener* obj)
+LANCONEXPORT void TCPReceiver_clear_message(TCPReceiver* obj)
 {
 	obj->clearBuffer();
 }
