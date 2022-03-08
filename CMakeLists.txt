@@ -11,6 +11,7 @@ set (CMAKE_CXX_STANDARD 17)
 add_executable(${PROJECT_NAME} "")
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)
+target_include_directories(${PROJECT_NAME} PUBLIC interface)
 add_subdirectory(src)
 add_subdirectory(include)
 add_subdirectory(interface)

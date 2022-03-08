@@ -1,3 +1,4 @@
+#include "Interfaces.h"
 #include "TCPSender.h"
 #include "TCPReceiver.h"
 #include "UDPSender.h"

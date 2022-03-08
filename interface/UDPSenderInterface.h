@@ -25,7 +25,7 @@ LANCONEXPORT void UDPSender_request_link(UDPSender* obj, const char* const targe
 //May return nullptr if no response recieved
 LANCONEXPORT UDPMessage* UDPSender_await_response_new(UDPSender* obj, uint16_t timeoutMS)
 {
-	const auto v = obj->awaitResponse(timeoutMS);
+	auto v = obj->awaitResponse(timeoutMS);
 	if (!v)
 		return nullptr;
 	return new UDPMessage(std::move(v.value()));
