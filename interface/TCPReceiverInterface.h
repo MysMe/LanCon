@@ -50,3 +50,8 @@ LANCONEXPORT void TCPReceiver_clear_message(TCPReceiver* obj)
 {
 	obj->clearBuffer();
 }
+
+LANCONEXPORT double TCPReceiver_get_message_percentage(TCPReceiver* obj)
+{
+	return obj->getMessagePercentage();
+}

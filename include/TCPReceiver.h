@@ -144,4 +144,9 @@ public:
 		sized = false;
 		complete = false;
 	}
+
+	double getMessagePercentage() const
+	{
+		return static_cast<double>(writePos) / buffer.size() * 100.0;
+	}
 };
