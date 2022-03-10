@@ -8,8 +8,8 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 set (CMAKE_CXX_STANDARD 17)
 
-add_executable(${PROJECT_NAME} "")
-#add_library(${PROJECT_NAME} SHARED "")
+#add_executable(${PROJECT_NAME} "")
+add_library(${PROJECT_NAME} SHARED "")
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 target_include_directories(${PROJECT_NAME} PUBLIC interface)

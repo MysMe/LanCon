@@ -10,14 +10,14 @@ class TCPReceiver : private serviceBase
 	asio::ip::tcp::acceptor acceptor;
 	asio::ip::tcp::socket socket;
 
+	//Stores the size of the message when received
+	std::array<uint8_t, 4> sizeBuffer;
 	//A buffer containing the message so far
 	std::string buffer;
 	//Indicates where in the buffer the next message should write to
 	uint32_t writePos = 0;
 	//Maximum number of bytes to read in one go
 	uint16_t blockSize = 1000;
-
-	static constexpr auto sizeInfoSize = sizeof(uint32_t);
 
 	//Whether or not a connection has been accepted
 	bool accepted = false;
@@ -33,14 +33,14 @@ class TCPReceiver : private serviceBase
 			if (!sized)
 			{
 				//If the size has not been recieved, assume it is the current packet
-				if (bytes != sizeInfoSize)
+				if (bytes != sizeBuffer.size())
 					return;
 
 				uint32_t messageSize =
-					(buffer[3] << 24) |
-					(buffer[2] << 16) |
-					(buffer[1] << 8)  |
-					(buffer[0] << 0);
+					(sizeBuffer[3] << 24) |
+					(sizeBuffer[2] << 16) |
+					(sizeBuffer[1] << 8)  |
+					(sizeBuffer[0] << 0);
 
 				//Reset the buffer
 				writePos = 0;
@@ -64,7 +64,7 @@ class TCPReceiver : private serviceBase
 		//When a message is not yet recieved or the previous message has completed recieving, expect to receive a size next
 		if (!sized || complete)
 		{
-			socket.async_receive(asio::buffer(buffer.data(), sizeInfoSize),
+			socket.async_receive(asio::buffer(sizeBuffer),
 				std::bind(&TCPReceiver::handle_read, this,
 					std::placeholders::_1, std::placeholders::_2));
 		}
@@ -103,7 +103,6 @@ public:
 	TCPReceiver(unsigned short port, uint16_t readBlockSize = 1024) : acceptor(service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)),
 		socket(service), blockSize(readBlockSize)
 	{
-		buffer.resize(sizeInfoSize);
 		start_accept();
 	}
 
@@ -140,13 +139,14 @@ public:
 
 		writePos = 0;
 		buffer.clear();
-		buffer.resize(sizeInfoSize);
 		sized = false;
 		complete = false;
 	}
 
 	double getMessagePercentage() const
 	{
+		if (!sized)
+			return 0;
 		return static_cast<double>(writePos) / buffer.size() * 100.0;
 	}
 };
