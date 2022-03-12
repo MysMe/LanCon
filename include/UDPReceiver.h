@@ -23,12 +23,7 @@ class UDPReceiver : private serviceBase
 	//Called once the system has finished recieving some data
 	void handle_recieve(const asio::error_code& ec, size_t bytes)
 	{
-		if (!ec)
-		{
-			UDPDataHandler buf(UDPRequest::respondAddress);
-			socket.send_to(buf.getBuffer(), remote);
-			start_recieve();
-		}
+		start_recieve();
 	}
 
 	//Waits for data to be recieved before calling handle_recieve
