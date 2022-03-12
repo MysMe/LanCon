@@ -311,9 +311,16 @@ void listen(const CMDOptions& opt)
 
 	while (true)
 	{
+		std::cout << "Starting await.\n";
 		const auto mv = listener.awaitMessage(opt.frequency);
+		std::cout << "Await complete.\n";
 		if (!mv)
 		{
+			if (listener.failed())
+			{
+				std::cout << "Message transmission failed.\n";
+				return;
+			}
 			std::cout << ".";
 		}
 		else
@@ -472,5 +479,7 @@ int main(int argc, char** argv)
 		std::cout << "Logical error: Invalid case after validate().\n";
 		return 2;
 	}
+	std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+	std::cin.ignore();
 	return 0;
 }

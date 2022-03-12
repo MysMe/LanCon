@@ -55,3 +55,8 @@ LANCONEXPORT double TCPReceiver_get_message_percentage(TCPReceiver* obj)
 {
 	return obj->getMessagePercentage();
 }
+
+LANCONEXPORT bool TCPReceiver_failed(TCPReceiver* obj)
+{
+	return obj->failed();
+}

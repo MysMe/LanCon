@@ -16,8 +16,6 @@ class TCPReceiver : private serviceBase
 	std::string buffer;
 	//Indicates where in the buffer the next message should write to
 	uint32_t writePos = 0;
-	//Maximum number of bytes to read in one go
-	uint16_t blockSize = 1000;
 
 	//Whether or not a connection has been accepted
 	bool accepted = false;
@@ -25,6 +23,8 @@ class TCPReceiver : private serviceBase
 	bool sized = false;
 	//Whether the current message has finished sending
 	bool complete = false;
+	//indicates a connection error
+	bool failure = false;
 
 	void handle_read(const asio::error_code& ec, size_t bytes)
 	{
@@ -55,8 +55,13 @@ class TCPReceiver : private serviceBase
 			{
 				complete = true;
 			}
+			start_read();
 		}
-		start_read();
+		else
+		{
+			//Signal failure and stop (do not enque another read)
+			failure = true;
+		}
 	}
 
 	void start_read()
@@ -70,7 +75,7 @@ class TCPReceiver : private serviceBase
 		}
 		else
 		{
-			socket.async_receive(asio::buffer(buffer.data() + writePos, blockSize),
+			socket.async_receive(asio::buffer(buffer.data() + writePos, buffer.size() - writePos),
 				std::bind(&TCPReceiver::handle_read, this,
 					std::placeholders::_1, std::placeholders::_2));
 		}
@@ -100,8 +105,8 @@ class TCPReceiver : private serviceBase
 	}
 
 public:
-	TCPReceiver(unsigned short port, uint16_t readBlockSize = 1024) : acceptor(service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)),
-		socket(service), blockSize(readBlockSize)
+	TCPReceiver(unsigned short port) : acceptor(service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)),
+		socket(service)
 	{
 		start_accept();
 	}
@@ -124,12 +129,18 @@ public:
 	{
 		while (!complete)
 		{
-			if (service.run_one_for(std::chrono::milliseconds(subTimeoutMS)) == 0)
+			if (service.run_one_for(std::chrono::milliseconds(subTimeoutMS)) == 0 || failure)
 			{
 				return {};
 			}
 		}
 		return std::cref(buffer);
+	}
+
+	//Indicates that message receive failed, the buffer can still be cleared in an attempt to get a new message
+	bool failed() const
+	{
+		return failure;
 	}
 
 	void clearBuffer()
@@ -141,11 +152,12 @@ public:
 		buffer.clear();
 		sized = false;
 		complete = false;
+		failure = false;
 	}
 
 	double getMessagePercentage() const
 	{
-		if (!sized)
+		if (!sized || failure)
 			return 0;
 		return static_cast<double>(writePos) / buffer.size() * 100.0;
 	}
