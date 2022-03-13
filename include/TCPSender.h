@@ -82,7 +82,7 @@ public:
 		bytes[2] = (size >> 16) & 0xFF;
 		bytes[3] = (size >> 24) & 0xFF;
 
-		socket.send(asio::buffer(bytes));
-		socket.send(asio::buffer(message));
+		asio::write(socket, asio::buffer(bytes));
+		asio::write(socket, asio::buffer(message));
 	}
 };
