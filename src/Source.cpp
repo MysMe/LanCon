@@ -456,6 +456,7 @@ bool validate(const CMDOptions& opt)
 
 int main(int argc, char** argv)
 {
+	std::cin.ignore();
 	const auto maybeOptions = parse(argc, argv);
 	if (!maybeOptions || !validate(maybeOptions.value()))
 	{

@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <iostream>
 
 //A class for recieving one-way messages
 class TCPReceiver : private serviceBase
@@ -60,6 +61,7 @@ class TCPReceiver : private serviceBase
 		else
 		{
 			//Signal failure and stop (do not enque another read)
+			std::cout << "Socket failed because: \"" << ec.message() << "\".\n";
 			failure = true;
 		}
 	}
