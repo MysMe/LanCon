@@ -12,44 +12,50 @@ class UDPSender : private serviceBase
 	asio::ip::udp::endpoint responder;
 	//The socket being used
 	asio::ip::udp::socket socket;
-	//The port being broadcast/recieved on
+	//The port being broadcast/received on
 	unsigned short port;
-	//Most recently recieved data packet
+	asio::ip::address mcad;
+	//Most recently received data packet
 	UDPDataHandler data;
 
-	//Called once the socket has recieved some information
-	void handle_recieve(const asio::error_code& ec, size_t bytes)
+	//Called once the socket has received some information
+	void handle_receive(const asio::error_code& ec, size_t bytes)
 	{
-		//Enque another recieve
-		wait_recieve();
+		//Enqueue another receive
+		wait_receive();
 	}
 
-	//Enques a recieve event but does not directly block waiting for it
-	void wait_recieve()
+	//Enqueues a receive event but does not directly block waiting for it
+	void wait_receive()
 	{
 		socket.async_receive_from(
 			data.getBuffer(), responder,
-			std::bind(&UDPSender::handle_recieve, this,
+			std::bind(&UDPSender::handle_receive, this,
 				std::placeholders::_1, std::placeholders::_2));
 
 	}
 public:
 
 	//Constructs a new broadcaster bound to the given service, does not in itself start broadcasting
-	UDPSender(unsigned short port) : port(port), socket(service)
+	UDPSender(unsigned short port, const std::string& address) : port(port), socket(service)
 	{
 		//Manually open the socket and enable broadcasting
 		socket.open(asio::ip::udp::v4());
 		socket.set_option(asio::ip::udp::socket::reuse_address(true));
-		socket.set_option(asio::socket_base::broadcast(true));
-		wait_recieve();
+
+		asio::ip::address multicastIp = asio::ip::address::from_string(address);
+		asio::ip::multicast::join_group option(multicastIp);
+		socket.set_option(option);
+		mcad = multicastIp;
+
+		wait_receive();
 	}
 
 	//Sends a broadcast searching for any devices running this program
 	void requestAddress()
 	{
 		UDPDataHandler send(UDPRequest::requestAddress);
-		socket.send_to(send.getBuffer(), asio::ip::udp::endpoint(asio::ip::address_v4::broadcast(), port));
+		socket.send_to(send.getBuffer(), asio::ip::udp::endpoint(mcad, port));
 	}
 
 	//Sends a request to a specific device asking to open a TCP connection
@@ -63,7 +69,7 @@ public:
 	std::optional<UDPMessage> awaitResponse(uint16_t timeoutMS)
 	{
 		const auto b = service.stopped();
-		//The only event that can run is a recieve, ergo either 1 receive runs or none run
+		//The only event that can run is a receive, ergo either 1 receive runs or none run
 		if (service.run_one_for(std::chrono::milliseconds(timeoutMS)) != 0)
 		{
 			//Ignore default address as this binds to anything

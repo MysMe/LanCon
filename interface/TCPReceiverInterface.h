@@ -51,9 +51,14 @@ LANCONEXPORT void TCPReceiver_clear_message(TCPReceiver* obj)
 	obj->clearBuffer();
 }
 
-LANCONEXPORT double TCPReceiver_get_message_percentage(TCPReceiver* obj)
+LANCONEXPORT std::size_t TCPReceiver_get_message_size(TCPReceiver* obj)
 {
-	return obj->getMessagePercentage();
+	return obj->getMessageSize();
+}
+
+LANCONEXPORT std::size_t TCPReceiver_get_message_received(TCPReceiver* obj)
+{
+	return obj->getMessageReceived();
 }
 
 LANCONEXPORT bool TCPReceiver_failed(TCPReceiver* obj)

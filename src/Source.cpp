@@ -36,6 +36,8 @@ struct CMDOptions
 
 	std::string data;
 
+	std::string multicastAddress = "239.255.0.1";
+
 	contents contentType = contents::none;
 };
 
@@ -243,109 +245,113 @@ std::optional<std::string> readFromFile(const std::string& path)
 
 void listen(const CMDOptions& opt)
 {
-	UDPReceiver responder(opt.UDPPort);
-
-	uint16_t port = 0;
-	asio::ip::udp::endpoint endpoint;
-
-	std::cout << "Listening on UDP port " << opt.UDPPort << ".\n";
-
-	std::cout << "Found addresses:\n";
-
-	std::set<asio::ip::address_v4> foundAddresses;
+	UDPReceiver responder(opt.UDPPort, opt.multicastAddress);
 
 	while (true)
 	{
-		auto maybeRes = responder.awaitRequest(opt.frequency);
-		if (!maybeRes)
-			continue;
-		const auto& res = maybeRes.value();
 
-		if (res.data.getRequest() == UDPRequest::requestAddress)
+		uint16_t port = 0;
+		asio::ip::udp::endpoint endpoint;
+
+		std::cout << "Listening on UDP port " << opt.UDPPort << ".\n";
+
+		std::cout << "Found addresses:\n";
+
+		std::set<asio::ip::address_v4> foundAddresses;
+
+		while (true)
 		{
-			if (foundAddresses.insert(res.endpoint.address().to_v4()).second)
+			auto maybeRes = responder.awaitRequest(opt.frequency);
+			if (!maybeRes)
+				continue;
+			const auto& res = maybeRes.value();
+
+			if (res.data.getRequest() == UDPRequest::requestAddress)
 			{
-				std::cout << "\t" << res.endpoint.address().to_string() << "\n";
+				if (foundAddresses.insert(res.endpoint.address().to_v4()).second)
+				{
+					std::cout << "\t" << res.endpoint.address().to_string() << "\n";
+				}
+				responder.respond(res.endpoint, UDPRequest::respondAddress);
+				continue;
 			}
-			responder.respond(res.endpoint, UDPRequest::respondAddress);
-			continue;
+
+			if (res.data.getRequest() == UDPRequest::requestLink)
+			{
+				std::cout << res.endpoint.address().to_string() << " would like to send data over TCP port " << res.data.getAdditional() << ".\nAccept? [Y/N]\n";
+				char v;
+				do
+				{
+					std::cin >> v;
+				} while (std::toupper(static_cast<unsigned char>(v)) != 'Y' && std::toupper(static_cast<unsigned char>(v)) != 'N');
+
+				if (v == 'Y')
+				{
+					port = res.data.getAdditional();
+					endpoint = res.endpoint;
+					break;
+				}
+				else
+				{
+					responder.respond(res.endpoint, UDPRequest::denyLink);
+				}
+			}
 		}
 
-		if (res.data.getRequest() == UDPRequest::requestLink)
-		{
-			std::cout << res.endpoint.address().to_string() << " would like to send data over TCP port " << res.data.getAdditional() << ".\nAccept? [Y/N]\n";
-			char v;
-			do
-			{
-				std::cin >> v;
-			} while (std::toupper(static_cast<unsigned char>(v)) != 'Y' && std::toupper(static_cast<unsigned char>(v)) != 'N');
+		std::cout << "Awaiting link on TCP port " << port << ".\n";
 
-			if (v == 'Y')
+		TCPReceiver listener(port);
+
+		while (true)
+		{
+			responder.respond(endpoint, UDPRequest::acceptLink);
+			if (listener.awaitAccept(opt.frequency))
 			{
-				port = res.data.getAdditional();
-				endpoint = res.endpoint;
 				break;
-			}
-			else
-			{
-				responder.respond(res.endpoint, UDPRequest::denyLink);
-			}
-		}
-	}
-
-	std::cout << "Awaiting link on TCP port " << port << ".\n";
-
-	TCPReceiver listener(port);
-
-	while (true)
-	{
-		responder.respond(endpoint, UDPRequest::acceptLink);
-		if (listener.awaitAccept(opt.frequency))
-		{
-			break;
-		}
-		std::cout << ".";
-	}
-	std::cout << "\nLink accepted.\n";
-	std::cout << "Awaiting data.\n";
-
-	while (true)
-	{
-		std::cout << "Starting await.\n";
-		const auto mv = listener.awaitMessage(opt.frequency);
-		std::cout << "Await complete.\n";
-		if (!mv)
-		{
-			if (listener.failed())
-			{
-				std::cout << "Message transmission failed.\n";
-				return;
 			}
 			std::cout << ".";
 		}
-		else
+		std::cout << "\nLink accepted.\n";
+		std::cout << "Awaiting data.\n";
+
+		while (true)
 		{
-			std::cout << "\nMessage recieved.\n";
-			if (opt.contentType == CMDOptions::contents::file)
+			std::cout << "Starting await.\n";
+			const auto mv = listener.awaitMessage(opt.frequency);
+			std::cout << "Await complete.\n";
+			if (!mv)
 			{
-				if (!writeToFile(opt.data, mv.value().get()))
+				if (listener.failed())
 				{
-					std::cout << "Unable to write to file \"" << opt.data << ".\nDumping contents:\n" << mv.value().get() << "\n";
+					std::cout << "Message transmission failed.\n";
+					return;
 				}
+				std::cout << ".";
 			}
 			else
 			{
-				std::cout << mv.value().get();
+				std::cout << "\nMessage received.\n";
+				if (opt.contentType == CMDOptions::contents::file)
+				{
+					if (!writeToFile(opt.data, mv.value().get()))
+					{
+						std::cout << "Unable to write to file \"" << opt.data << ".\nDumping contents:\n" << mv.value().get() << "\n";
+					}
+				}
+				else
+				{
+					std::cout << mv.value().get();
+				}
+				std::cout << "\nDone." << std::endl;
+				return;
 			}
-			std::cout << "\nDone." << std::endl;
-			return;
 		}
 	}
 }
 
 void broadcast(const CMDOptions& opt)
 {
-	UDPSender broadcast(opt.UDPPort);
+	UDPSender broadcast(opt.UDPPort, opt.multicastAddress);
 
 	std::cout << "Starting broadcast on UDP port " << opt.UDPPort << ".\n";
 
@@ -386,7 +392,7 @@ void send(const CMDOptions& opt)
 		message = mc.value();
 	}
 
-	UDPSender linkAsk(opt.UDPPort);
+	UDPSender linkAsk(opt.UDPPort, opt.multicastAddress);
 
 	std::cout << "Requesting link using UDP port " << opt.UDPPort << " to send over TCP port " << opt.TCPPort << ".\n";
 
@@ -456,7 +462,6 @@ bool validate(const CMDOptions& opt)
 
 int main(int argc, char** argv)
 {
-	std::cin.ignore();
 	const auto maybeOptions = parse(argc, argv);
 	if (!maybeOptions || !validate(maybeOptions.value()))
 	{
@@ -480,7 +485,5 @@ int main(int argc, char** argv)
 		std::cout << "Logical error: Invalid case after validate().\n";
 		return 2;
 	}
-	std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-	std::cin.ignore();
 	return 0;
 }

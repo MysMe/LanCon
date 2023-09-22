@@ -2,9 +2,9 @@
 #include "Export.h"
 #include "UDPSender.h"
 
-LANCONEXPORT UDPSender* UDPSender_new(unsigned short port)
+LANCONEXPORT UDPSender* UDPSender_new(unsigned short port, const char* address)
 {
-	return new UDPSender(port);
+	return new UDPSender(port, address);
 }
 
 LANCONEXPORT void UDPSender_delete(UDPSender* obj)
@@ -22,7 +22,7 @@ LANCONEXPORT void UDPSender_request_link(UDPSender* obj, const char* const targe
 	obj->requestLink(asio::ip::address::from_string(target), linkPort);
 }
 
-//May return nullptr if no response recieved
+//May return nullptr if no response received
 LANCONEXPORT UDPMessage* UDPSender_await_response_new(UDPSender* obj, uint16_t timeoutMS)
 {
 	auto v = obj->awaitResponse(timeoutMS);

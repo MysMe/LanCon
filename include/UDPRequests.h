@@ -6,7 +6,7 @@ enum class UDPRequest : uint8_t
 {
 	undefined, //No use, any time this is seen is an error
 	requestAddress, //Broadcast from a device searching for other devices
-	respondAddress, //Response given when a device has been asked for its adress
+	respondAddress, //Response given when a device has been asked for its address
 	requestLink, //Sent from a device looking to open a TCP connection
 	acceptLink, //Positive response to open a TCP connection
 	denyLink //Negative response to open a TCP connection

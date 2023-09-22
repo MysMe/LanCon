@@ -19,7 +19,7 @@ class TCPReceiver : private serviceBase
 
 	//Whether or not a connection has been accepted
 	bool accepted = false;
-	//Whether the class has recieved size information for the current message
+	//Whether the class has received size information for the current message
 	bool sized = false;
 	//Whether the current message has finished sending
 	bool complete = false;
@@ -32,7 +32,7 @@ class TCPReceiver : private serviceBase
 		{
 			if (!sized)
 			{
-				//If the size has not been recieved, assume it is the current packet
+				//If the size has not been received, assume it is the current packet
 				if (bytes != sizeBuffer.size())
 					return;
 
@@ -66,7 +66,7 @@ class TCPReceiver : private serviceBase
 
 	void start_read()
 	{
-		//When a message is not yet recieved or the previous message has completed recieving, expect to receive a size next
+		//When a message is not yet received or the previous message has completed recieving, expect to receive a size next
 		if (!sized || complete)
 		{
 			socket.async_receive(asio::buffer(sizeBuffer),
@@ -155,10 +155,17 @@ public:
 		failure = false;
 	}
 
-	double getMessagePercentage() const
+	std::size_t getMessageSize() const
 	{
 		if (!sized || failure)
 			return 0;
-		return static_cast<double>(writePos) / buffer.size() * 100.0;
+		return buffer.size();
+	}
+
+	std::size_t getMessageReceived() const
+	{
+		if (!sized || failure)
+			return 0;
+		return writePos;
 	}
 };

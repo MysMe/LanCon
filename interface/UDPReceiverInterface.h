@@ -2,9 +2,9 @@
 #include "Export.h"
 #include "UDPReceiver.h"
 
-LANCONEXPORT UDPReceiver* UDPReceiver_new(unsigned short port)
+LANCONEXPORT UDPReceiver* UDPReceiver_new(unsigned short port, const char* address)
 {
-	return new UDPReceiver(port);
+	return new UDPReceiver(port, address);
 }
 
 LANCONEXPORT void UDPReceiver_delete(UDPReceiver* obj)
@@ -12,7 +12,7 @@ LANCONEXPORT void UDPReceiver_delete(UDPReceiver* obj)
 	delete obj;
 }
 
-//May return nullptr if no request recieved
+//May return nullptr if no request received
 LANCONEXPORT UDPMessage* UDPReceiver_await_message_new(UDPReceiver* obj, uint16_t timeoutMS)
 {
 	auto v = obj->awaitRequest(timeoutMS);
